@@ -1,0 +1,16 @@
+{
+  "name": "@loftbox/sdk",
+  "version": "0.1.0",
+  "description": "LoftBox TypeScript SDK - Email infrastructure for AI agents",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
