@@ -2,15 +2,39 @@
   "name": "@loftbox/sdk",
   "version": "0.1.0",
   "description": "LoftBox TypeScript SDK - Email infrastructure for AI agents",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TheMagicTower/loftbox-sdk-ts.git"
+  },
+  "homepage": "https://loftbox.net",
+  "keywords": ["email", "ai-agents", "smtp", "inbox", "loftbox"],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
-    "test": "node --test"
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {},
   "devDependencies": {
+    "@types/node": "^20",
+    "prettier": "^3",
+    "tsx": "^4",
     "typescript": "^5"
   }
 }
