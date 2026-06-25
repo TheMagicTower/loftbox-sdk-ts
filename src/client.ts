@@ -4,6 +4,7 @@ import type {
   Attachment,
   Domain,
   DomainStatus,
+  InboundSenderRule,
   ListMessagesParams,
   LoftBoxConfig,
   Mailbox,
@@ -17,7 +18,7 @@ import type {
 
 const DEFAULT_BASE_URL = "https://api.loftbox.net";
 const DEFAULT_TIMEOUT_MS = 30_000;
-const USER_AGENT = "loftbox-ts/0.1.0";
+const USER_AGENT = "loftbox-ts/0.2.0";
 
 type Query = Record<string, string | number | undefined | null>;
 
@@ -31,6 +32,7 @@ export class LoftBox {
   readonly webhooks: WebhooksResource;
   readonly domains: DomainsResource;
   readonly suppressions: SuppressionsResource;
+  readonly inboundRules: InboundRulesResource;
   readonly attachments: AttachmentsResource;
 
   private readonly apiKey: string;
@@ -58,6 +60,7 @@ export class LoftBox {
     this.webhooks = new WebhooksResource(this);
     this.domains = new DomainsResource(this);
     this.suppressions = new SuppressionsResource(this);
+    this.inboundRules = new InboundRulesResource(this);
     this.attachments = new AttachmentsResource(this);
   }
 
@@ -443,6 +446,50 @@ class SuppressionsResource extends Resource {
     await this.c.request(
       "DELETE",
       `/v1/suppressions/${encodeURIComponent(suppressionId)}`,
+    );
+  }
+}
+
+/** #370 인바운드 발신자 allow/block 리스트 — 수신 통제. */
+class InboundRulesResource extends Resource {
+  async list(
+    params: { mailboxId?: string; limit?: number; before?: string } = {},
+  ): Promise<Page<InboundSenderRule>> {
+    return page<InboundSenderRule>(
+      await this.c.request("GET", "/v1/inbound-rules", {
+        query: {
+          mailbox_id: params.mailboxId,
+          limit: params.limit,
+          before: params.before,
+        },
+      }),
+    );
+  }
+
+  /**
+   * 규칙 생성. ruleType=allow|block, patternType=address|domain.
+   * mailboxId 미지정 = org 전체. block 매치 또는 allow 리스트 미매치 발신자는 수신 거부.
+   */
+  create(params: {
+    ruleType: string;
+    patternType: string;
+    pattern: string;
+    mailboxId?: string;
+  }): Promise<InboundSenderRule> {
+    return this.c.request("POST", "/v1/inbound-rules", {
+      json: {
+        rule_type: params.ruleType,
+        pattern_type: params.patternType,
+        pattern: params.pattern,
+        mailbox_id: params.mailboxId ?? null,
+      },
+    });
+  }
+
+  async remove(ruleId: string): Promise<void> {
+    await this.c.request(
+      "DELETE",
+      `/v1/inbound-rules/${encodeURIComponent(ruleId)}`,
     );
   }
 }

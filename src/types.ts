@@ -54,6 +54,10 @@ export interface Message extends Extensible {
   body_markdown?: string | null;
   /** #229 인용 제거된 수신 답장 본문. */
   extracted_text?: string | null;
+  /** #369 인바운드 프롬프트-인젝션 휴리스틱 점수(0~1, 높을수록 의심). 신호 전용 — 차단 아님. */
+  injection_score?: number | null;
+  /** #369 발화한 인젝션 카테고리(instruction_override 등). */
+  injection_categories?: string[] | null;
   /** #236 라벨. */
   labels?: string[];
   /** #241 예약발송 시각(RFC3339). */
@@ -96,6 +100,19 @@ export interface Suppression extends Extensible {
   id: string;
   address: string;
   reason?: string | null;
+  created_at?: string | null;
+}
+
+/** #370 인바운드 발신자 allow/block 규칙. */
+export interface InboundSenderRule extends Extensible {
+  id: string;
+  /** null = org 전체 메일박스. 값이 있으면 그 메일박스에만 적용. */
+  mailbox_id?: string | null;
+  /** "allow" 또는 "block". */
+  rule_type?: string;
+  /** "address"(정확 주소) 또는 "domain". */
+  pattern_type?: string;
+  pattern?: string;
   created_at?: string | null;
 }
 

@@ -176,4 +176,64 @@ describe("LoftBox TS SDK", () => {
     });
     await client.mailboxes.ackInbox("mb_1", ["m1", "m2"]);
   });
+
+  it("parses inbound injection signal (#369)", async () => {
+    const { client } = makeClient(async () =>
+      json({
+        id: "msg_1",
+        direction: "incoming",
+        injection_score: 0.78,
+        injection_categories: ["instruction_override"],
+      }),
+    );
+    const msg = await client.messages.get("msg_1");
+    assert.equal(msg.injection_score, 0.78);
+    assert.deepEqual(msg.injection_categories, ["instruction_override"]);
+  });
+
+  it("inboundRules.create shapes request (#370)", async () => {
+    const { client } = makeClient(async (req) => {
+      assert.equal(req.method, "POST");
+      assert.ok(req.url.endsWith("/v1/inbound-rules"));
+      const body = await req.json();
+      assert.equal(body.rule_type, "block");
+      assert.equal(body.pattern_type, "domain");
+      assert.equal(body.pattern, "evil.com");
+      assert.equal(body.mailbox_id, null);
+      return json(
+        {
+          id: "rule_1",
+          rule_type: "block",
+          pattern_type: "domain",
+          pattern: "evil.com",
+        },
+        201,
+      );
+    });
+    const rule = await client.inboundRules.create({
+      ruleType: "block",
+      patternType: "domain",
+      pattern: "evil.com",
+    });
+    assert.equal(rule.id, "rule_1");
+  });
+
+  it("inboundRules.list filters by mailbox (#370)", async () => {
+    const { client } = makeClient(async (req) => {
+      assert.ok(req.url.includes("/v1/inbound-rules"));
+      assert.equal(new URL(req.url).searchParams.get("mailbox_id"), "mb_9");
+      return json({ data: [{ id: "r1" }], next_cursor: null });
+    });
+    const pageRes = await client.inboundRules.list({ mailboxId: "mb_9" });
+    assert.equal(pageRes.data[0].id, "r1");
+  });
+
+  it("inboundRules.remove uses DELETE path (#370)", async () => {
+    const { client, calls } = makeClient(
+      async () => new Response(null, { status: 204 }),
+    );
+    await client.inboundRules.remove("rule_42");
+    assert.equal(calls[0].method, "DELETE");
+    assert.ok(calls[0].url.endsWith("/v1/inbound-rules/rule_42"));
+  });
 });
