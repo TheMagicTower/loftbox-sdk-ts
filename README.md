@@ -77,6 +77,41 @@ await client.mailboxes.ackInbox(
 - **승인** `messages.approve(id, reason)`, `reject(...)`
 - **웹훅** `webhooks.create(agentId, url, eventTypes)`
 - **도메인 / suppression** `domains.*`, `suppressions.*`
+- **인바운드 안전 (#369/#370)** `message.injection_score`/`injection_categories`(프롬프트-인젝션 신호, 차단 아님) + `inboundRules.*`(발신자 allow/block)
+
+## 인바운드 안전 (프롬프트-인젝션 신호 + 발신자 통제)
+
+수신 메일은 임의 외부 발신자가 보낸 untrusted 입력입니다. 두 가지 통제를 제공합니다.
+
+```ts
+// #369: 수신 메시지마다 프롬프트-인젝션 휴리스틱 점수(0~1) + 발화 카테고리.
+//       신호 전용 — LoftBox 는 차단하지 않으며, 에이전트가 판단합니다.
+const { data } = await client.mailboxes.listInbox("mb_xxx");
+for (const msg of data) {
+  if ((msg.injection_score ?? 0) >= 0.7) {
+    // 예: 사람 승인 후에만 메일 내 지시를 따른다.
+    await requireHumanReview(msg);
+  }
+}
+
+// #370: 발신자 allow/block 리스트로 수신 자체를 통제(SMTP 550 거부).
+await client.inboundRules.create({
+  ruleType: "block",
+  patternType: "domain",
+  pattern: "evil.com",
+});
+await client.inboundRules.create({
+  ruleType: "allow",
+  patternType: "address",
+  pattern: "partner@trusted.com",
+  mailboxId: "mb_xxx", // 미지정 시 org 전체
+});
+const rules = await client.inboundRules.list({ mailboxId: "mb_xxx" });
+await client.inboundRules.remove("rule_id");
+```
+
+allow 리스트가 하나라도 있으면 미매치 발신자는 거부됩니다(화이트리스트). 평가는 위조 가능한
+`From` 헤더가 아니라 SMTP envelope sender 로 합니다.
 
 ## 오류 처리
 

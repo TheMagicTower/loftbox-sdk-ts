@@ -14,6 +14,7 @@ export type {
   Attachment,
   Domain,
   DomainStatus,
+  InboundSenderRule,
   Mailbox,
   Message,
   Page,
